@@ -1,0 +1,156 @@
+Options -Indexes
+
+Options +FollowSymLinks
+
+DirectoryIndex index.php index.html
+
+ErrorDocument 404 /404.php
+
+AddDefaultCharset utf-8
+
+# Необходимо для авторизации API, если недоступна функция apache_request_headers
+# При таком способе установки переменной окружения получим $_SERVER[‘HTTP_AUTHORIZATION’]
+# SetEnvIfNoCase Authorization "(.*)" HTTP_AUTHORIZATION=$1
+
+# Add other values from HTTP Headers. For example:
+# SetEnvIfNoCase Accept "(.*)" HTTP_ACCEPT=$1
+# SetEnvIfNoCase Content-Type "(.*)" HTTP_CONTENT_TYPE=$1
+# SetEnvIfNoCase ^If-Modified-Since$ "(.+)" HTTP_IF_MODIFIED_SINCE=$1
+# SetEnvIfNoCase ^If-None-Match$ "(.+)" HTTP_IF_NONE_MATCH=$1
+# SetEnvIfNoCase ^Cache-Control$ "(.+)" HTTP_CACHE_CONTROL=$1
+# SetEnvIfNoCase ^Connection$ "(.+)" HTTP_CONNECTION=$1
+# SetEnvIfNoCase ^Keep-Alive$ "(.+)" HTTP_KEEP_ALIVE=$1
+# SetEnvIfNoCase ^Cookie$ "(.+)" HTTP_COOKIE=$1
+
+<IfModule mod_rewrite.c>
+  RewriteEngine on
+
+# раскомментируйте строку ниже, если на Вашем хостинге установщик выдает ошибку 500 Internal Server Error
+# измените / на /sub/ при установке в подпапку http://site.ru/sub/
+# RewriteBase /
+
+# расcкомментируйте строки ниже, если хотите чтобы сайт был всегда с www,
+# т.е. постоянный редирект с http://site.ru/ на http://www.site.ru/
+# RewriteCond %{HTTP_HOST} !^www.
+# RewriteRule (.*) http://www.%{HTTP_HOST}/$1 [R=301,L]
+
+# и наоборот: раскомментируйте эти две строки, чтобы был редирект с www на без www
+# RewriteCond %{HTTP_HOST} ^www\.(.*) [NC]
+# RewriteRule ^(.*)$ http://%1/$1 [R=301,L]
+
+  RewriteCond %{HTTP:Authorization} !^$
+  RewriteCond %{REQUEST_URI} ^/shop/1c/.*
+  RewriteRule ^(.*)$ shop/1c/?auth=%{HTTP:Authorization}&%{QUERY_STRING}
+
+  RewriteRule ^(.*)sitemap.xml$ index.php?rewrite=sitemap.xml [QSA]
+  RewriteRule ^(&*)(.*)/$ index.php?rewrite=$2 [QSA]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^(&*)(.*)$ index.php?rewrite=$2 [QSA]
+  RewriteRule ^index.php\/(.*)$ index.php?rewrite=index.php/$1 [QSA]
+
+# Необходимо для авторизации API, если недоступна функция apache_request_headers
+# При таком способе установки переменной окружения вместо ожидаемой $_SERVER[‘HTTP_AUTHORIZATION’]
+# получим $_SERVER[‘REDIRECT_HTTP_AUTHORIZATION’]
+  RewriteCond %{HTTP:Authorization} !^$
+  RewriteCond %{REQUEST_URI} ^/api/.*
+  RewriteRule .* - [QSA,E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+# Необходимо для авторизации EXEC, если недоступна функция apache_request_headers
+# При таком способе установки переменной окружения вместо ожидаемой $_SERVER[‘HTTP_AUTHORIZATION’]
+# получим $_SERVER[‘REDIRECT_HTTP_AUTHORIZATION’]
+  RewriteCond %{HTTP:Authorization} !^$
+  RewriteCond %{REQUEST_URI} ^/exec/.*
+  RewriteRule .* - [QSA,E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+# If-Modified-Since (if php is not installed as cgi then comment lines below)
+  RewriteRule .* - [E=HTTP_IF_MODIFIED_SINCE:%{HTTP:If-Modified-Since}]
+  RewriteRule .* - [E=HTTP_IF_NONE_MATCH:%{HTTP:If-None-Match}]
+</IfModule>
+
+
+<IfModule mod_headers.c>
+<FilesMatch "\.(flv|woff|woff2|eot|svg|otf|ttf|gif|jpg|jpeg|png|ico|swf|js|css|pdf|ico)$">
+  Header append Cache-Control "max-age=2604800, must-revalidate"
+</FilesMatch>
+</IfModule>
+
+#<IfModule mod_expires.c>
+#<filesMatch "\.(flv|woff|woff2|eot|svg|otf|ttf|gif|jpg|jpeg|png|ico|swf|js|css|pdf|ico)$">
+ # ExpiresActive On
+ # ExpiresDefault "access plus 1 month"
+#</filesMatch>
+#</IfModule>
+
+<IfModule mod_expires.c>
+
+    ExpiresActive on
+    ExpiresDefault                                      "access plus 1 month"
+
+  # CSS
+    ExpiresByType text/css                              "access plus 1 year"
+
+  # Data interchange
+    ExpiresByType application/atom+xml                  "access plus 1 hour"
+    ExpiresByType application/rdf+xml                   "access plus 1 hour"
+    ExpiresByType application/rss+xml                   "access plus 1 hour"
+
+    ExpiresByType application/json                      "access plus 0 seconds"
+    ExpiresByType application/ld+json                   "access plus 0 seconds"
+    ExpiresByType application/schema+json               "access plus 0 seconds"
+    ExpiresByType application/vnd.geo+json              "access plus 0 seconds"
+    ExpiresByType application/xml                       "access plus 0 seconds"
+    ExpiresByType text/xml                              "access plus 0 seconds"
+
+  # Favicon (cannot be renamed!) and cursor images
+    ExpiresByType image/vnd.microsoft.icon              "access plus 1 week"
+    ExpiresByType image/x-icon                          "access plus 1 week"
+
+  # HTML
+    ExpiresByType text/html                             "access plus 0 seconds"
+
+  # JavaScript
+    ExpiresByType application/javascript                "access plus 1 year"
+    ExpiresByType application/x-javascript              "access plus 1 year"
+    ExpiresByType text/javascript                       "access plus 1 year"
+
+  # Manifest files
+    ExpiresByType application/manifest+json             "access plus 1 year"
+
+    ExpiresByType application/x-web-app-manifest+json   "access plus 0 seconds"
+    ExpiresByType text/cache-manifest                   "access plus 0 seconds"
+
+  # Media files
+    ExpiresByType audio/ogg                             "access plus 1 month"
+    ExpiresByType image/bmp                             "access plus 1 month"
+    ExpiresByType image/gif                             "access plus 1 month"
+    ExpiresByType image/jpeg                            "access plus 1 month"
+    ExpiresByType image/png                             "access plus 1 month"
+    ExpiresByType image/svg+xml                         "access plus 1 month"
+    ExpiresByType image/webp                            "access plus 1 month"
+    ExpiresByType video/mp4                             "access plus 1 month"
+    ExpiresByType video/ogg                             "access plus 1 month"
+    ExpiresByType video/webm                            "access plus 1 month"
+
+  # Web fonts
+
+    # Embedded OpenType (EOT)
+    ExpiresByType application/vnd.ms-fontobject         "access plus 1 month"
+    ExpiresByType font/eot                              "access plus 1 month"
+
+    # OpenType
+    ExpiresByType font/opentype                         "access plus 1 month"
+
+    # TrueType
+    ExpiresByType application/x-font-ttf                "access plus 1 month"
+
+    # Web Open Font Format (WOFF) 1.0
+    ExpiresByType application/font-woff                 "access plus 1 month"
+    ExpiresByType application/x-font-woff               "access plus 1 month"
+    ExpiresByType font/woff                             "access plus 1 month"
+
+    # Web Open Font Format (WOFF) 2.0
+    ExpiresByType application/font-woff2                "access plus 1 month"
+
+  # Other
+    ExpiresByType text/x-cross-domain-policy            "access plus 1 week"
